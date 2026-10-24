@@ -2,10 +2,9 @@ import axios from 'axios';
 
 const api = axios.create({ timeout: 20000 });
 let tokenCache = null;
+let tokenPromise = null;
 
-export const GetToken = async () => {
-  if (tokenCache) return tokenCache;
-
+const getTokenInternal = async () => {
   const url = import.meta.env.VITE_URL_TOKEN;
   const user = import.meta.env.VITE_USUARIO;
   const pass = import.meta.env.VITE_PASS;
@@ -15,9 +14,40 @@ export const GetToken = async () => {
   return tokenCache;
 };
 
-const authorizedGet = async (url) => {
+export const GetToken = async (force = false) => {
+  if (!force && tokenCache) return tokenCache;
+  if (!tokenPromise) {
+    tokenPromise = getTokenInternal().finally(() => {
+      tokenPromise = null;
+    });
+  }
+  return tokenPromise;
+};
+
+const authorizedGet = async (url, config = {}, retry = true) => {
   const token = await GetToken();
-  return api.get(url, { headers: { Authorization: token } });
+  try {
+    return await api.get(url, {
+      ...config,
+      headers: {
+        ...(config.headers || {}),
+        Authorization: token,
+      },
+    });
+  } catch (error) {
+    if (retry && error.response?.status === 401) {
+      tokenCache = null;
+      const newToken = await GetToken(true);
+      return api.get(url, {
+        ...config,
+        headers: {
+          ...(config.headers || {}),
+          Authorization: newToken,
+        },
+      });
+    }
+    throw error;
+  }
 };
 
 export const GetEstaciones = async () => {

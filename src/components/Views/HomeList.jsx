@@ -16,6 +16,7 @@ import {
   getUserLocation,
   hasFuel,
 } from '../../utils/stations';
+import { getStorage, setStorage, STORAGE_KEYS } from '../../utils/storage';
 
 const RADIUS_OPTIONS = [2, 5, 10, 15];
 
@@ -24,21 +25,42 @@ const HomeList = ({ datos }) => {
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [radius, setRadius] = useState(5);
-  const [fuelFilter, setFuelFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('distance');
+  const [radius, setRadius] = useState(() => getStorage(STORAGE_KEYS.home.radius, 5));
+  const [fuelFilter, setFuelFilter] = useState(() => getStorage(STORAGE_KEYS.home.fuel, 'all'));
+  const [sortBy, setSortBy] = useState(() => getStorage(STORAGE_KEYS.home.sort, 'distance'));
 
   const availableStations = useMemo(
     () => (datos ? Object.values(datos) : []),
     [datos]
   );
 
+  useEffect(() => setStorage(STORAGE_KEYS.home.radius, radius), [radius]);
+  useEffect(() => setStorage(STORAGE_KEYS.home.fuel, fuelFilter), [fuelFilter]);
+  useEffect(() => setStorage(STORAGE_KEYS.home.sort, sortBy), [sortBy]);
+
   const locate = useCallback(
-    async () => {
+    async (force = false) => {
       setLoading(true);
       setError(null);
       try {
-        const userPos = await getUserLocation();
+        const cached = !force ? getStorage(STORAGE_KEYS.location, null) : null;
+        let userPos = cached;
+        if (!userPos) {
+          userPos = await getUserLocation();
+          setStorage(STORAGE_KEYS.location, userPos);
+        } else {
+          try {
+            // Intentar refrescar ubicación en segundo plano, mantener caché si falla
+            getUserLocation()
+              .then((fresh) => {
+                setStorage(STORAGE_KEYS.location, fresh);
+                setPosition([fresh.lat, fresh.lon]);
+              })
+              .catch(() => {});
+          } catch {
+            // ignore
+          }
+        }
         setPosition([userPos.lat, userPos.lon]);
 
         const withDistance = availableStations
@@ -194,7 +216,7 @@ const HomeList = ({ datos }) => {
               <option value="price_DI">Precio diésel</option>
             </select>
           </label>
-          <button type="button" className="btn btn--primary btn--sm" onClick={locate}>
+          <button type="button" className="btn btn--primary btn--sm" onClick={() => locate(true)}>
             <FontAwesomeIcon icon={faLocationCrosshairs} />
             Actualizar
           </button>
@@ -208,7 +230,7 @@ const HomeList = ({ datos }) => {
             <strong>No pudimos acceder a tu ubicación</strong>
             <p>{error}</p>
           </div>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={locate}>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => locate(true)}>
             <FontAwesomeIcon icon={faRotate} /> Reintentar
           </button>
         </div>
