@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMagnifyingGlass, faSliders, faInbox } from '@fortawesome/free-solid-svg-icons';
+import { faMagnifyingGlass, faSliders, faInbox, faLocationDot } from '@fortawesome/free-solid-svg-icons';
 import Mapa from '../Maps';
 import StationCard from '../StationCard';
-import {
-  FUEL_OPTIONS,
-  getNumericPrice,
-  hasFuel,
-  stationCoordinates,
-} from '../../utils/stations';
+import { FUEL_OPTIONS, getNumericPrice, hasFuel, stationCoordinates } from '../../utils/stations';
 
 const PAGE_SIZE = 12;
 
@@ -155,16 +150,27 @@ const EstacionList = ({ estaciones }) => {
         </div>
       ) : (
         <>
-          {withCoords.length > 0 && (
+          {mapStations.length > 0 && (
             <div className="panel panel--map panel--map-wide">
               <Mapa data={mapStations} showPrices />
               <p className="map-caption">
+                <FontAwesomeIcon icon={faLocationDot} />
                 {mapStations.length === withCoords.length
                   ? `${withCoords.length} estaciones con ubicación en el mapa`
                   : `Mostrando ${mapStations.length} de ${withCoords.length} estaciones en el mapa`}
               </p>
             </div>
           )}
+
+          <header className="section-heading">
+            <div>
+              <h2>Listado de estaciones</h2>
+              <p>
+                {filtered.length} resultados · Mostrando {visibleStations.length}
+                {filtered.length > visibleStations.length ? ` de ${filtered.length}` : ''}
+              </p>
+            </div>
+          </header>
 
           <div className="cards-grid">
             {visibleStations.map((station, index) => (
