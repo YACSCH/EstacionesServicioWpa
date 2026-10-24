@@ -4,37 +4,38 @@ import { faDownload } from '@fortawesome/free-solid-svg-icons';
 
 const InstallPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setIsVisible(true);
+    const handler = (event) => {
+      event.preventDefault();
+      setDeferredPrompt(event);
     };
+    const installed = () => setDeferredPrompt(null);
 
     window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', installed);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', installed);
     };
   }, []);
 
+  if (!deferredPrompt) return null;
+
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
     deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setIsVisible(false);
+    try {
+      await deferredPrompt.userChoice;
+    } finally {
+      setDeferredPrompt(null);
     }
-    setDeferredPrompt(null);
   };
 
-  if (!isVisible) return null;
-
   return (
-    <button onClick={handleInstall} style={{ marginTop: '0.5rem', padding: '0.4rem 0.75rem', cursor: 'pointer' }}>
-      <FontAwesomeIcon icon={faDownload} /> Instalar App
+    <button type="button" className="btn btn--install" onClick={handleInstall}>
+      <FontAwesomeIcon icon={faDownload} />
+      <span>Instalar</span>
     </button>
   );
 };

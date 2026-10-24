@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: process.env.BASE_PATH || '/',
   plugins: [
     react(),
     VitePWA({
@@ -41,21 +42,21 @@ export default defineConfig({
             name: 'Estaciones',
             short_name: 'Estaciones',
             description: 'Ver listado de estaciones',
-            url: '/estaciones',
+            url: 'estaciones',
             icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
           },
           {
             name: 'Cercanas',
             short_name: 'Cercanas',
             description: 'Estaciones cercanas a tu ubicación',
-            url: '/',
+            url: './',
             icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
           },
           {
             name: 'Calefacción',
             short_name: 'Calefacción',
             description: 'Puntos de venta de calefacción',
-            url: '/distribuidores',
+            url: 'distribuidores',
             icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
           }
         ]
@@ -85,6 +86,22 @@ export default defineConfig({
               expiration: {
                 maxEntries: 500,
                 maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: ({ url }) =>
+              url.origin === 'https://fonts.googleapis.com' ||
+              url.origin === 'https://fonts.gstatic.com',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 24 * 365
               },
               cacheableResponse: {
                 statuses: [0, 200]

@@ -1,221 +1,279 @@
-import { useEffect, useState } from 'react';
-import Mapa from '../Maps';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLocationCrosshairs, faRoute } from '@fortawesome/free-solid-svg-icons';
+import {
+  faLocationCrosshairs,
+  faRotate,
+  faTriangleExclamation,
+  faGasPump,
+  faRoute,
+} from '@fortawesome/free-solid-svg-icons';
+import Mapa from '../Maps';
+import StationCard from '../StationCard';
+import {
+  FUEL_OPTIONS,
+  getDistanceKm,
+  getNumericPrice,
+  getUserLocation,
+  hasFuel,
+} from '../../utils/stations';
 
-// Función para obtener la ubicación actual
-async function getUserLocation() {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject('Geolocalización no soportada.');
-    } else {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            lat: position.coords.latitude,
-            lon: position.coords.longitude
-          });
-        },
-        (error) => {
-          reject('Error obteniendo ubicación: ' + error.message);
-        }
-      );
-    }
-  });
-}
-
-// Función para calcular distancia entre dos coordenadas
-function getDistanceKm(lat1, lon1, lat2, lon2) {
-  const R = 6371; // Radio de la Tierra en km
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-}
-
-const COMBUSTIBLES = [
-  { key: '93', label: 'Gasolina 93' },
-  { key: '95', label: 'Gasolina 95' },
-  { key: '97', label: 'Gasolina 97' },
-  { key: 'DI', label: 'Diésel' },
-  { key: 'KE', label: 'Kerosene' }
-];
+const RADIUS_OPTIONS = [2, 5, 10, 15];
 
 const HomeList = ({ datos }) => {
   const [position, setPosition] = useState(null);
-  const [stationsWithDist, setStationsWithDist] = useState([]);
-  const [filteredStations, setFilteredStations] = useState([]);
+  const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [radius, setRadius] = useState(5);
   const [fuelFilter, setFuelFilter] = useState('all');
   const [sortBy, setSortBy] = useState('distance');
 
-  const fetchLocationAndFilter = async (r = radius) => {
-    try {
+  const availableStations = useMemo(
+    () => (datos ? Object.values(datos) : []),
+    [datos]
+  );
+
+  const locate = useCallback(
+    async () => {
       setLoading(true);
       setError(null);
-      const userPos = await getUserLocation();
-      setPosition([userPos.lat, userPos.lon]);
+      try {
+        const userPos = await getUserLocation();
+        setPosition([userPos.lat, userPos.lon]);
 
-      const nearbyStations = Object.values(datos || {})
-        .map((station) => {
-          const { latitud, longitud } = station.ubicacion || {};
-          if (!latitud || !longitud) return null;
-          const distance = getDistanceKm(
-            userPos.lat,
-            userPos.lon,
-            parseFloat(latitud),
-            parseFloat(longitud)
-          );
-          return { ...station, _distance: distance };
-        })
-        .filter((s) => s && s._distance <= r)
-        .sort((a, b) => a._distance - b._distance);
+        const withDistance = availableStations
+          .map((station) => {
+            const { latitud, longitud } = station.ubicacion || {};
+            if (!latitud || !longitud) return null;
+            const distance = getDistanceKm(
+              userPos.lat,
+              userPos.lon,
+              parseFloat(latitud),
+              parseFloat(longitud)
+            );
+            return { ...station, _distance: distance };
+          })
+          .filter(Boolean)
+          .sort((a, b) => a._distance - b._distance);
 
-      setStationsWithDist(nearbyStations);
-    } catch (err) {
-      console.error(err);
-      setError(typeof err === 'string' ? err : 'Error al obtener ubicación');
-    } finally {
-      setLoading(false);
-    }
-  };
+        setStations(withDistance);
+      } catch (err) {
+        setError(typeof err === 'string' ? err : 'No pudimos obtener tu ubicación.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [availableStations]
+  );
 
   useEffect(() => {
-    if (datos && Object.keys(datos).length > 0) {
-      fetchLocationAndFilter(radius);
+    if (availableStations.length) {
+      locate();
     } else {
       setLoading(false);
     }
-  }, [datos]);
+  }, [availableStations, locate]);
 
-  useEffect(() => {
-    let result = [...stationsWithDist];
+  const filteredStations = useMemo(() => {
+    let result = stations.filter((station) => station._distance <= radius);
+
     if (fuelFilter !== 'all') {
-      result = result.filter((station) => {
-        const precios = station.precios || {};
-        const p1 = precios[fuelFilter]?.precio;
-        const p2 = precios[`A${fuelFilter}`]?.precio;
-        return p1 || p2;
-      });
+      result = result.filter((station) => hasFuel(station, fuelFilter));
     }
+
     if (sortBy === 'distance') {
       result.sort((a, b) => a._distance - b._distance);
-    } else if (sortBy === 'price_93') {
+    } else {
+      const fuelKey = sortBy.replace('price_', '');
       result.sort((a, b) => {
-        const pa = (a.precios?.['93']?.precio || a.precios?.['A93']?.precio || Infinity);
-        const pb = (b.precios?.['93']?.precio || b.precios?.['A93']?.precio || Infinity);
-        return pa - pb;
+        const priceA = getNumericPrice(a, fuelKey) ?? Infinity;
+        const priceB = getNumericPrice(b, fuelKey) ?? Infinity;
+        return priceA - priceB;
       });
     }
-    setFilteredStations(result);
-  }, [stationsWithDist, fuelFilter, sortBy]);
 
-  const getPrice = (station, key) => {
-    const precios = station.precios || {};
-    return precios[key]?.precio || precios[`A${key}`]?.precio || 'N/D';
-  };
+    return result;
+  }, [stations, fuelFilter, sortBy, radius]);
 
-  const openRoute = (lat, lon) => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
-    window.open(url, '_blank');
-  };
-
-  if (loading || !position) {
-    return (
-      <div style={{ textAlign: 'center', marginTop: '2rem', padding: '1rem' }}>
-        <p>Obteniendo tu ubicación y buscando estaciones cercanas...</p>
-      </div>
+  const cheapest = useMemo(() => {
+    if (!filteredStations.length) return null;
+    const key = fuelFilter !== 'all' ? fuelFilter : '93';
+    return filteredStations.reduce(
+      (best, station) => {
+        const price = getNumericPrice(station, key);
+        if (price === null) return best;
+        if (best === null || price < best.price) {
+          return {
+            price,
+            brand:
+              station.distribuidor?.marca ||
+              station.distribuidor?.nombre ||
+              'Estación',
+          };
+        }
+        return best;
+      },
+      null
     );
-  }
-
-  if (error) {
-    return (
-      <div style={{ textAlign: 'center', marginTop: '2rem', padding: '1rem' }}>
-        <h2>Error</h2>
-        <p>{error}</p>
-        <button onClick={() => fetchLocationAndFilter(radius)} style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
-          <FontAwesomeIcon icon={faLocationCrosshairs} /> Reintentar
-        </button>
-      </div>
-    );
-  }
+  }, [filteredStations, fuelFilter]);
 
   return (
-    <div style={{ width: '100%', padding: '0.5rem' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
-        <div>
-          <label style={{ marginRight: '0.25rem' }}>Radio:</label>
-          <select value={radius} onChange={(e) => { setRadius(Number(e.target.value)); fetchLocationAndFilter(Number(e.target.value)); }}>
-            <option value={2}>2 km</option>
-            <option value={5}>5 km</option>
-            <option value={10}>10 km</option>
-            <option value={15}>15 km</option>
-          </select>
+    <section className="page">
+      <div className="hero">
+        <div className="hero__content">
+          <span className="hero__badge">
+            <FontAwesomeIcon icon={faGasPump} /> Datos oficiales CNE
+          </span>
+          <h1>Encuentra la estación más cercana y el mejor precio</h1>
+          <p>
+            Descubre estaciones de servicio en Santiago, compara precios de combustibles y
+            llega con un solo toque.
+          </p>
         </div>
-        <div>
-          <label style={{ marginRight: '0.25rem' }}>Combustible:</label>
-          <select value={fuelFilter} onChange={(e) => setFuelFilter(e.target.value)}>
-            <option value="all">Todos</option>
-            {COMBUSTIBLES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-          </select>
+        <div className="hero__stats">
+          <div className="stat">
+            <strong>{filteredStations.length}</strong>
+            <span>estaciones</span>
+          </div>
+          <div className="stat">
+            <strong>{radius} km</strong>
+            <span>a la redonda</span>
+          </div>
+          {cheapest && (
+            <div className="stat stat--highlight">
+              <strong>${cheapest.price.toLocaleString('es-CL')}</strong>
+              <span>
+                {FUEL_OPTIONS.find((fuel) => fuel.key === (fuelFilter !== 'all' ? fuelFilter : '93'))?.name}{' '}
+                desde · {cheapest.brand}
+              </span>
+            </div>
+          )}
         </div>
-        <div>
-          <label style={{ marginRight: '0.25rem' }}>Ordenar:</label>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-            <option value="distance">Por distancia</option>
-            <option value="price_93">Por precio 93</option>
-          </select>
-        </div>
-        <button onClick={() => fetchLocationAndFilter(radius)} style={{ padding: '0.25rem 0.5rem', cursor: 'pointer' }}>
-          <FontAwesomeIcon icon={faLocationCrosshairs} /> Actualizar
-        </button>
       </div>
 
-      {filteredStations.length === 0 ? (
-        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-          <h2>No hay estaciones con los filtros seleccionados 🚫⛽</h2>
-          <p>Prueba ampliando el radio o cambiando el filtro de combustible.</p>
+      <div className="toolbar">
+        <div className="chip-group" role="group" aria-label="Radio de búsqueda">
+          <span className="toolbar__label">Radio</span>
+          {RADIUS_OPTIONS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={`chip${radius === option ? ' chip--active' : ''}`}
+              onClick={() => setRadius(option)}
+            >
+              {option} km
+            </button>
+          ))}
         </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
-          <div style={{ height: '50vh', minHeight: '300px' }}>
-            <Mapa data={filteredStations} pos={position} />
+
+        <div className="chip-group chip-group--scroll" role="group" aria-label="Filtrar por combustible">
+          <span className="toolbar__label">Combustible</span>
+          <button
+            type="button"
+            className={`chip${fuelFilter === 'all' ? ' chip--active' : ''}`}
+            onClick={() => setFuelFilter('all')}
+          >
+            Todos
+          </button>
+          {FUEL_OPTIONS.map((fuel) => (
+            <button
+              key={fuel.key}
+              type="button"
+              className={`chip${fuelFilter === fuel.key ? ' chip--active' : ''}`}
+              onClick={() => setFuelFilter(fuel.key)}
+            >
+              {fuel.name}
+            </button>
+          ))}
+        </div>
+
+        <div className="toolbar__right">
+          <label className="select-field">
+            <span>Ordenar por</span>
+            <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+              <option value="distance">Distancia</option>
+              <option value="price_93">Precio 93</option>
+              <option value="price_95">Precio 95</option>
+              <option value="price_DI">Precio diésel</option>
+            </select>
+          </label>
+          <button type="button" className="btn btn--primary btn--sm" onClick={locate}>
+            <FontAwesomeIcon icon={faLocationCrosshairs} />
+            Actualizar
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="alert alert--error">
+          <FontAwesomeIcon icon={faTriangleExclamation} />
+          <div>
+            <strong>No pudimos acceder a tu ubicación</strong>
+            <p>{error}</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
-            {filteredStations.map((station, idx) => (
-              <article className="card" key={idx} style={{ width: '100%', margin: 0 }}>
-                <h3 className="card-title">{station.distribuidor?.marca || 'Estación'}</h3>
-                <section className="card-body">
-                  <p className="card-text"><strong>Dirección:</strong> {station.direccion_calle || station.ubicacion?.direccion} {station.direccion_numero || ''}</p>
-                  <p className="card-text"><strong>Comuna:</strong> {station.nombre_comuna}</p>
-                  <p className="card-text"><strong>Distancia:</strong> {station._distance?.toFixed(2)} km</p>
-                  <p className="card-text"><strong>Horario:</strong> {station.horario_atencion || 'N/D'}</p>
-                  <div style={{ marginTop: '0.5rem' }}>
-                    <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Precios</p>
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                      <li>93: ${getPrice(station, '93')}</li>
-                      <li>95: ${getPrice(station, '95')}</li>
-                      <li>97: ${getPrice(station, '97')}</li>
-                      <li>Diésel: ${getPrice(station, 'DI')}</li>
-                      <li>Kerosene: ${getPrice(station, 'KE')}</li>
-                    </ul>
-                  </div>
-                  <button onClick={() => openRoute(station.ubicacion.latitud, station.ubicacion.longitud)} style={{ marginTop: '0.75rem', padding: '0.4rem 0.75rem', cursor: 'pointer' }}>
-                    <FontAwesomeIcon icon={faRoute} /> Cómo llegar
-                  </button>
-                </section>
-              </article>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={locate}>
+            <FontAwesomeIcon icon={faRotate} /> Reintentar
+          </button>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="home-layout">
+          <div className="panel panel--map skeleton skeleton--map" />
+          <div className="cards-grid">
+            {[0, 1, 2, 3].map((item) => (
+              <div className="skeleton skeleton--card" key={item} />
             ))}
           </div>
         </div>
+      ) : !error && filteredStations.length === 0 ? (
+        <div className="empty-state">
+          <FontAwesomeIcon icon={faRoute} />
+          <h2>Sin estaciones en este radio</h2>
+          <p>Amplía el radio de búsqueda o cambia el filtro de combustible.</p>
+          <button type="button" className="btn btn--primary" onClick={() => setRadius(15)}>
+            Ampliar a 15 km
+          </button>
+        </div>
+      ) : (
+        !error && (
+          <div className="home-layout">
+            <div className="panel panel--map panel--map--sticky">
+              <Mapa
+                data={filteredStations}
+                center={position}
+                userPosition={position}
+                showPrices
+                zoom={13}
+              />
+              <p className="map-caption">
+                <FontAwesomeIcon icon={faLocationCrosshairs} /> Tu ubicación y las estaciones
+                dentro de {radius} km
+              </p>
+            </div>
+
+            <div className="home-list">
+              <header className="section-heading">
+                <div>
+                  <h2>Estaciones cercanas</h2>
+                  <p>{filteredStations.length} resultados ordenados por {sortBy === 'distance' ? 'distancia' : 'precio'}</p>
+                </div>
+              </header>
+              <div className="cards-grid">
+                {filteredStations.map((station, index) => (
+                  <StationCard
+                    key={station.id || `${station.distribuidor?.marca}-${index}`}
+                    station={station}
+                    distance={station._distance}
+                    highlightedFuel={fuelFilter !== 'all' ? fuelFilter : undefined}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )
       )}
-    </div>
+    </section>
   );
 };
 

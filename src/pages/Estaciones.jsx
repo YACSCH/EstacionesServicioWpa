@@ -1,28 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { GetEstaciones } from "../api/getData"
+import { useCallback, useEffect, useState } from 'react';
+import { GetEstaciones } from '../api/getData';
 
-import Header from '../components/Header'
-import Footer from '../components/Footer'
-import Main from  '../components/Main'
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+import Main from '../components/Main';
 
 function Estaciones() {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await GetEstaciones();
+      setData(response.data);
+    } catch (err) {
+      console.error(err);
+      setError('Revisa tu conexión e inténtalo nuevamente.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-       const estaciones = async () => {
-         const response = await GetEstaciones();
-         setData(response.data);
-       }
-   estaciones()
-}, []);
- return (
-   <>
-       <Header/>
-       <Main data = { data }  type="estaciones"/>
-       <Footer/>
-   </>
-   
- )
+    loadData();
+  }, [loadData]);
+
+  return (
+    <>
+      <Header />
+      <Main data={data} type="estaciones" loading={loading} error={error} onRetry={loadData} />
+      <Footer />
+    </>
+  );
 }
 
-export default Estaciones
+export default Estaciones;

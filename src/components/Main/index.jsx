@@ -1,30 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import EstacionList from '../Views/EstacionList'
-import DistribuidoreList from '../Views/DistribuidoresList'
-import HomeList from '../Views/HomeList'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faRotate, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
+import EstacionList from '../Views/EstacionList';
+import DistribuidoresList from '../Views/DistribuidoresList';
+import HomeList from '../Views/HomeList';
 
-const Main = ({data , type}) => {
-  
-const [isLoading, setIsLoading] = useState(true);
-useEffect(() => {
-  setIsLoading(true); 
-  setTimeout(() => {
-    setIsLoading(false); 
-  }, 2000);
-}, [type]); 
+const SkeletonGrid = () => (
+  <div className="page">
+    <div className="skeleton skeleton--hero" />
+    <div className="cards-grid">
+      {[0, 1, 2, 3, 4, 5].map((item) => (
+        <div className="skeleton skeleton--card" key={item} />
+      ))}
+    </div>
+  </div>
+);
 
+const Main = ({ data, type, loading, error, onRetry }) => {
   return (
-     <main>
-       {isLoading ? (
-        <div className='loading'>Loading...</div>
+    <main className="main">
+      {loading ? (
+        <SkeletonGrid />
+      ) : error ? (
+        <div className="empty-state">
+          <FontAwesomeIcon icon={faTriangleExclamation} />
+          <h2>No pudimos cargar la información</h2>
+          <p>{error}</p>
+          {onRetry && (
+            <button type="button" className="btn btn--primary" onClick={onRetry}>
+              <FontAwesomeIcon icon={faRotate} /> Reintentar
+            </button>
+          )}
+        </div>
       ) : (
         <>
-        {type === 'home' && <HomeList datos = { data }  />}
-        {type === 'estaciones' && <EstacionList estaciones ={data} />}
-        {type === 'distribuidores' && <DistribuidoreList distribuidores={data} />}
+          {type === 'home' && <HomeList datos={data} />}
+          {type === 'estaciones' && <EstacionList estaciones={data} />}
+          {type === 'distribuidores' && <DistribuidoresList distribuidores={data} />}
         </>
-      )} 
-      </main>
-  )
-}
-export default Main
+      )}
+    </main>
+  );
+};
+
+export default Main;

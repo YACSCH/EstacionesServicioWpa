@@ -1,19 +1,33 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faGithub, faLinkedin, faFacebook } from '@fortawesome/free-brands-svg-icons'
-import { faEnvelope,faUser }from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faGithub, faLinkedin, faFacebook } from '@fortawesome/free-brands-svg-icons';
+import { faEnvelope } from '@fortawesome/free-solid-svg-icons';
 
+const links = [
+  { href: 'https://github.com/YACSCH', icon: faGithub, label: 'GitHub' },
+  { href: 'https://www.linkedin.com/in/yamil-castillo-28522221/', icon: faLinkedin, label: 'LinkedIn' },
+  { href: 'https://www.facebook.com', icon: faFacebook, label: 'Facebook' },
+  { href: 'mailto:yamilcs@gmail.com', icon: faEnvelope, label: 'Email' },
+];
 
- const Footer = () => {
-  return (
-    <footer>
-      <ul className='footer-list'>
-        <li className='footer-list-item'><a href="https://github.com/YACSCH" target="_blank"><FontAwesomeIcon icon={ faGithub }/></a></li>
-        <li className='footer-list-item'><a href="https://www.linkedin.com/in/yamil-castillo-28522221/"  target="_blank"><FontAwesomeIcon icon={ faLinkedin }/></a></li>
-        <li className='footer-list-item'><a href="https://www.facebook.com" target="_blank"><FontAwesomeIcon icon={ faFacebook }/></a></li>
-        <li className='footer-list-item'><a href="mailto:yamilcs@gmail.com" target="_blank"><FontAwesomeIcon icon={ faEnvelope }/></a></li>
+const Footer = () => (
+  <footer className="site-footer">
+    <div className="site-footer__inner">
+      <div className="site-footer__brand">
+        <strong>Estaciones de Servicio</strong>
+        <span>Datos abiertos de la Comisión Nacional de Energía (CNE).</span>
+      </div>
+      <ul className="site-footer__links">
+        {links.map((link) => (
+          <li key={link.label}>
+            <a href={link.href} target="_blank" rel="noreferrer" aria-label={link.label} title={link.label}>
+              <FontAwesomeIcon icon={link.icon} />
+            </a>
+          </li>
+        ))}
       </ul>
-      <p>YACS</p>
-    </footer>
-  )
-}
+      <p className="site-footer__copy">© {new Date().getFullYear()} YACS</p>
+    </div>
+  </footer>
+);
+
 export default Footer;
