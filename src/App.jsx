@@ -6,7 +6,6 @@ import ScrollToTop from './components/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const Estaciones = lazy(() => import('./pages/Estaciones'));
-const Distribuidores = lazy(() => import('./pages/Distribuidores'));
 const NotFound = lazy(() => import('./components/NotFound'));
 
 const PageLoader = () => (
@@ -32,7 +31,6 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/estaciones" element={<Estaciones />} />
-              <Route path="/distribuidores" element={<Distribuidores />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

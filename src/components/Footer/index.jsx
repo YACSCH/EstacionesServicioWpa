@@ -1,11 +1,9 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faGithub, faLinkedin, faFacebook } from '@fortawesome/free-brands-svg-icons';
 import { faEnvelope } from '@fortawesome/free-solid-svg-icons';
 
 const links = [
   { href: 'https://github.com/YACSCH', icon: faGithub, label: 'GitHub' },
   { href: 'https://www.linkedin.com/in/yamil-castillo-28522221/', icon: faLinkedin, label: 'LinkedIn' },
-  { href: 'https://www.facebook.com', icon: faFacebook, label: 'Facebook' },
   { href: 'mailto:yamilcs@gmail.com', icon: faEnvelope, label: 'Email' },
 ];
 
@@ -14,7 +12,7 @@ const Footer = () => (
     <div className="site-footer__inner">
       <div className="site-footer__brand">
         <strong>Estaciones de Servicio</strong>
-        <span>Datos abiertos de la Comisión Nacional de Energía (CNE).</span>
+        <span>Datos de la Comisión Nacional de Energía (CNE).</span>
       </div>
       <ul className="site-footer__links">
         {links.map((link) => (

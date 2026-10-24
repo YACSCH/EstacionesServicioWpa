@@ -1,7 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRotate, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import EstacionList from '../Views/EstacionList';
-import DistribuidoresList from '../Views/DistribuidoresList';
 import HomeList from '../Views/HomeList';
 
 const SkeletonGrid = () => (
@@ -35,7 +34,6 @@ const Main = ({ data, type, loading, error, onRetry }) => {
         <>
           {type === 'home' && <HomeList datos={data} />}
           {type === 'estaciones' && <EstacionList estaciones={data} />}
-          {type === 'distribuidores' && <DistribuidoresList distribuidores={data} />}
         </>
       )}
     </main>

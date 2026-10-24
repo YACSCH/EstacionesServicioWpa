@@ -8,7 +8,6 @@ import ThemeToggle from '../ThemeToggle';
 const navItems = [
   { to: '/', label: 'Inicio', end: true },
   { to: '/estaciones', label: 'Estaciones' },
-  { to: '/distribuidores', label: 'Calefacción' },
 ];
 
 const Header = () => {
@@ -28,7 +27,7 @@ const Header = () => {
           </span>
           <span className="brand__text">
             <strong>Estaciones</strong>
-            <small>Servicio · Santiago</small>
+            <small>de Servicio</small>
           </span>
         </NavLink>
 
