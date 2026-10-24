@@ -118,17 +118,14 @@ const HomeList = ({ datos }) => {
   }, [filteredStations, fuelFilter]);
 
   return (
-    <section className="page">
+    <section className="page page--home">
       <div className="hero">
         <div className="hero__content">
           <span className="hero__badge">
             <FontAwesomeIcon icon={faGasPump} /> Datos oficiales CNE
           </span>
-          <h1>Encuentra la estación más cercana y el mejor precio</h1>
-          <p>
-            Descubre estaciones de servicio en Santiago, compara precios de combustibles y
-            llega con un solo toque.
-          </p>
+          <h1>Tu estación más cercana, al mejor precio</h1>
+          <p>Compara precios de combustibles en Santiago y llega con un solo toque.</p>
         </div>
         <div className="hero__stats">
           <div className="stat">
