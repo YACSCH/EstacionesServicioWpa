@@ -1,18 +1,11 @@
-import { useEffect, useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGasPump } from '@fortawesome/free-solid-svg-icons';
 import InstallPrompt from '../InstallPrompt';
 import ThemeToggle from '../ThemeToggle';
 
 const Header = () => {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const location = useLocation();
-
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [location.pathname]);
-
   return (
     <header className="site-header">
       <div className="site-header__inner">

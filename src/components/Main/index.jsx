@@ -13,7 +13,7 @@ const SkeletonGrid = () => (
   </div>
 );
 
-const Main = ({ data, type, loading, error, onRetry }) => {
+const Main = ({ data, loading, error, onRetry }) => {
   return (
     <main className="main">
       {loading ? (
