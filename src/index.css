@@ -914,14 +914,22 @@ a {
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 46px;
   border-radius: 12px;
   font-weight: 800;
   font-size: 1.05rem;
   color: var(--brand);
-  background: var(--brand-soft);
-  border: 1px solid rgba(20, 184, 166, 0.25);
+  background: #ffffff;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.station-card__avatar--logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
 }
 
 .station-card__avatar--store {
