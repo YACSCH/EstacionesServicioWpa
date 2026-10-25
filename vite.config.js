@@ -92,22 +92,8 @@ export default defineConfig(({ mode }) => {
             {
               name: 'Estaciones',
               short_name: 'Estaciones',
-              description: 'Ver listado de estaciones',
-              url: 'estaciones',
-              icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
-            },
-            {
-              name: 'Cercanas',
-              short_name: 'Cercanas',
-              description: 'Estaciones cercanas a tu ubicación',
+              description: 'Ver estaciones de servicio y precios de combustibles',
               url: './',
-              icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
-            },
-            {
-              name: 'Calefacción',
-              short_name: 'Calefacción',
-              description: 'Puntos de venta de calefacción',
-              url: 'distribuidores',
               icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
             }
           ]
