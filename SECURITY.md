@@ -82,11 +82,11 @@ Actualizadas en esta revisión:
 - `axios` 1.9.0 → 1.20.0 (corrige SSRF, prototype pollution, header injection, DoS).
 - `react-router-dom` 6.14.2 → 7.18.4 (corrige open redirect / XSS).
 - `form-data` y `follow-redirects` transitivas corregidas.
+- `vite` 4.5.14 → 7.3.7 y `@vitejs/plugin-react` 4.0.3 → 5.2.0: eliminan los
+  avisos del dev server (lectura de archivos, XSS, path traversal) y de
+  `esbuild`. Requiere Node ≥ 20.19/22.12 (CI usa Node 22).
 
-Quedan 3 avisos **solo del toolchain de desarrollo** (`vite` 4.x, `esbuild`,
-`@vitejs/plugin-react`). No se envían al usuario final, pero conviene migrar a
-Vite 7/8 cuando haya tiempo (requiere actualizar `@vitejs/plugin-react` y
-verificar `vite-plugin-pwa`).
+`npm audit` (incluyendo desarrollo) queda en **0 vulnerabilidades**.
 
 ## 6. Otras medidas aplicadas
 
@@ -109,6 +109,12 @@ verificar `vite-plugin-pwa`).
   `/api/estaciones/` a la ruta canónica.
 - Cabecera `Cross-Origin-Resource-Policy: same-origin` y CSP sin `blob:` en
   `worker-src`/`img-src`.
+- Tipografía **autoalojada** (`src/assets/fonts`): Plus Jakarta Sans en formato
+  variable (latin y latin-ext) se sirve desde el propio dominio y se precachea.
+  Ya no hay peticiones a `fonts.googleapis.com` / `fonts.gstatic.com`, así que
+  Google no recibe la IP del usuario; la CSP ya no necesita esos orígenes.
+- Un solo lockfile (`package-lock.json`); `yarn.lock` se eliminó para que nadie
+  instale un árbol de dependencias distinto.
 - CI en `.github/workflows/ci.yml`: `npm ci`, lint, build, `npm audit --omit=dev`
   y comprobación de que no se usen variables `VITE_` para credenciales.
 
@@ -116,4 +122,5 @@ verificar `vite-plugin-pwa`).
 
 - Rate limiting en `/api/estaciones` si el uso crece (Vercel Firewall o Upstash).
 - Sustituir el correo personal del footer por uno de contacto dedicado.
-- Unificar lockfiles (`package-lock.json` o `yarn.lock`, no ambos).
+- Los tiles de OpenStreetMap siguen revelando la zona aproximada del usuario;
+  si importa la privacidad, se puede añadir un proxy de tiles.
