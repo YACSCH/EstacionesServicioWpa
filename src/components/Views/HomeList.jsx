@@ -220,31 +220,24 @@ const HomeList = ({ datos }) => {
       </div>
 
       <div className="toolbar">
-        {/* En móvil el wrapper se disuelve (display: contents) y el orden es
-            radio → combustible → Actualizar. En escritorio el grupo entero
-            (radio + Actualizar) va a la derecha, en la misma fila. */}
-        <div className="toolbar__right">
-          <div className="chip-group chip-group--radio" role="group" aria-label="Radio de búsqueda">
-            <span className="toolbar__label">Radio</span>
-            {RADIUS_OPTIONS.map((option) => (
-              <button
-                key={option}
-                type="button"
-                className={`chip${hasLocation && !unlimited && radius === option ? ' chip--active' : ''}`}
-                aria-pressed={hasLocation && !unlimited && radius === option}
-                onClick={() => {
-                  setUnlimited(false);
-                  setRadius(option);
-                }}
-              >
-                {option} km
-              </button>
-            ))}
-          </div>
-          <button type="button" className="btn btn--primary btn--sm" onClick={() => locate(true)}>
-            <FontAwesomeIcon icon={faLocationCrosshairs} />
-            Actualizar
-          </button>
+        {/* Orden: radio, combustible y Actualizar. En escritorio el botón
+            se alinea al borde derecho. */}
+        <div className="chip-group chip-group--radio" role="group" aria-label="Radio de búsqueda">
+          <span className="toolbar__label">Radio</span>
+          {RADIUS_OPTIONS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={`chip${hasLocation && !unlimited && radius === option ? ' chip--active' : ''}`}
+              aria-pressed={hasLocation && !unlimited && radius === option}
+              onClick={() => {
+                setUnlimited(false);
+                setRadius(option);
+              }}
+            >
+              {option} km
+            </button>
+          ))}
         </div>
 
         <div className="chip-group chip-group--scroll" role="group" aria-label="Filtrar por combustible">
@@ -269,6 +262,11 @@ const HomeList = ({ datos }) => {
             </button>
           ))}
         </div>
+
+        <button type="button" className="btn btn--primary btn--sm" onClick={() => locate(true)}>
+          <FontAwesomeIcon icon={faLocationCrosshairs} />
+          Actualizar
+        </button>
       </div>
 
       {error && (

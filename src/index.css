@@ -578,23 +578,6 @@ a {
   margin-right: 0.15rem;
 }
 
-.toolbar__right {
-  display: contents;
-}
-
-/* Orden móvil: radio, combustible y Actualizar (el wrapper no pinta caja). */
-.toolbar__right > .chip-group--radio {
-  order: 1;
-}
-
-.toolbar > .chip-group--scroll {
-  order: 2;
-}
-
-.toolbar__right > .btn {
-  order: 3;
-}
-
 .chip-group {
   display: flex;
   align-items: center;
@@ -646,19 +629,18 @@ a {
     flex-wrap: wrap;
   }
 
-  /* Combustible a la izquierda; radio + Actualizar al borde derecho. */
+  /* Radio y combustible juntos a la izquierda; Actualizar al borde derecho. */
+  .toolbar > .chip-group--radio {
+    margin-right: 2rem;
+  }
+
   .toolbar > .chip-group--scroll {
-    order: 1;
     flex: 0 1 auto;
     min-width: 0;
   }
 
-  .toolbar__right {
-    display: flex;
-    order: 2;
+  .toolbar > .btn {
     margin-left: auto;
-    align-items: center;
-    gap: 0.6rem;
   }
 }
 
