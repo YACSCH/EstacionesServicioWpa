@@ -57,8 +57,10 @@ funciona ahí. Usa Vercel como destino principal o aloja el proxy por separado.
 `Referrer-Policy`, `Permissions-Policy`, COOP y HSTS.
 
 La CSP permite un único script inline (el que aplica el tema antes del primer
-pintado) mediante hash SHA-256. **Si editas ese script en `index.html`**, recalcula
-el hash y actualízalo en `vercel.json`:
+pintado) mediante hash SHA-256. `connect-src` está limitado a `'self'`: el
+cliente solo habla con nuestro proxy, no con `api.cne.cl` directamente. **Si
+editas ese script en `index.html`**, recalcula el hash y actualízalo en
+`vercel.json`:
 
 ```bash
 npm run csp:hash
@@ -95,6 +97,12 @@ verificar `vite-plugin-pwa`).
 - La ubicación guardada en `localStorage` caduca a las 24 h (`getStoredLocation` /
   `setStoredLocation` en `src/utils/storage.js`); los datos antiguos sin marca de
   tiempo se descartan al leerlos.
+- Actualización de la PWA: `src/pwa.js` registra el service worker con
+  `workbox-window`; cuando una versión nueva toma el control, la página se
+  recarga automáticamente (sin mezclar bundles viejos y nuevos). Además se busca
+  actualización cada hora y al volver a la app.
+- `/api/*` está marcado como `NetworkOnly` en el service worker: las respuestas
+  del proxy nunca se cachean.
 
 ## 7. Recomendaciones pendientes
 
