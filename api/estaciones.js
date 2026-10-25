@@ -20,8 +20,7 @@ export default async function handler(req, res) {
   }
 
   // Sin query strings: evita claves de caché infinitas y llamadas innecesarias a CNE.
-  const requestUrl = new URL(req.url || '/', 'http://localhost');
-  if (requestUrl.search) {
+  if ((req.url || '').includes('?')) {
     return res.status(400).json({ error: 'Unexpected query parameters' });
   }
 

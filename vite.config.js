@@ -17,8 +17,8 @@ const cneDevProxy = (env) => ({
         return
       }
 
-      const requestUrl = new URL(req.url || '/', 'http://localhost')
-      if (requestUrl.search) {
+      const requestUrl = req.url || ''
+      if (requestUrl.includes('?')) {
         res.statusCode = 400
         res.setHeader('Content-Type', 'application/json; charset=utf-8')
         res.end(JSON.stringify({ error: 'Unexpected query parameters' }))
