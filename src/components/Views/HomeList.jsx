@@ -16,7 +16,7 @@ import {
   getUserLocation,
   hasFuel,
 } from '../../utils/stations';
-import { getStorage, setStorage, STORAGE_KEYS } from '../../utils/storage';
+import { getStorage, setStorage, getStoredLocation, setStoredLocation, STORAGE_KEYS } from '../../utils/storage';
 
 const RADIUS_OPTIONS = [2, 5, 10, 15];
 
@@ -43,17 +43,17 @@ const HomeList = ({ datos }) => {
       setLoading(true);
       setError(null);
       try {
-        const cached = !force ? getStorage(STORAGE_KEYS.location, null) : null;
+        const cached = !force ? getStoredLocation() : null;
         let userPos = cached;
         if (!userPos) {
           userPos = await getUserLocation();
-          setStorage(STORAGE_KEYS.location, userPos);
+          setStoredLocation(userPos);
         } else {
           try {
             // Intentar refrescar ubicación en segundo plano, mantener caché si falla
             getUserLocation()
               .then((fresh) => {
-                setStorage(STORAGE_KEYS.location, fresh);
+                setStoredLocation(fresh);
                 setPosition([fresh.lat, fresh.lon]);
               })
               .catch(() => {});

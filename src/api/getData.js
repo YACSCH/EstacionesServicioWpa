@@ -1,61 +1,14 @@
 import axios from 'axios';
 
 const api = axios.create({ timeout: 20000 });
-let tokenCache = null;
-let tokenPromise = null;
 
-const getTokenInternal = async () => {
-  const url = import.meta.env.VITE_URL_TOKEN;
-  const user = import.meta.env.VITE_USUARIO;
-  const pass = import.meta.env.VITE_PASS;
-
-  const response = await api.post(url, { email: user, password: pass });
-  tokenCache = `Bearer ${response.data.token}`;
-  return tokenCache;
-};
-
-export const GetToken = async (force = false) => {
-  if (!force && tokenCache) return tokenCache;
-  if (!tokenPromise) {
-    tokenPromise = getTokenInternal().finally(() => {
-      tokenPromise = null;
-    });
-  }
-  return tokenPromise;
-};
-
-const authorizedGet = async (url, config = {}, retry = true) => {
-  const token = await GetToken();
-  try {
-    return await api.get(url, {
-      ...config,
-      headers: {
-        ...(config.headers || {}),
-        Authorization: token,
-      },
-    });
-  } catch (error) {
-    if (retry && error.response?.status === 401) {
-      tokenCache = null;
-      const newToken = await GetToken(true);
-      return api.get(url, {
-        ...config,
-        headers: {
-          ...(config.headers || {}),
-          Authorization: newToken,
-        },
-      });
-    }
-    throw error;
-  }
-};
+// Todas las llamadas autenticadas pasan por el proxy serverless (/api/estaciones).
+// Las credenciales de la CNE viven solo en el servidor (CNE_USER / CNE_PASS):
+// nunca deben llegar al bundle del navegador.
+const API_BASE = `${import.meta.env.BASE_URL}api`;
 
 export const GetEstaciones = async () => {
-  return authorizedGet(import.meta.env.VITE_URL_ESTACIONES);
-};
-
-export const GetDistribuidores = async () => {
-  return authorizedGet(import.meta.env.VITE_URL_DISTRIBUIDORES);
+  return api.get(`${API_BASE}/estaciones`);
 };
 
 export const GetRegion = async () => {
@@ -64,6 +17,10 @@ export const GetRegion = async () => {
 };
 
 export const GetComuna = async (props) => {
-  const response = await api.get(import.meta.env.VITE_URL_COMUNAS + props);
+  if (props === undefined || props === null || props === '') {
+    throw new Error('Se requiere el identificador de la comuna.');
+  }
+  const comuna = encodeURIComponent(String(props).trim());
+  const response = await api.get(import.meta.env.VITE_URL_COMUNAS + comuna);
   return response.data;
 };

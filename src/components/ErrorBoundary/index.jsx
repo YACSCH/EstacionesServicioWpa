@@ -13,7 +13,11 @@ class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('ErrorBoundary:', error, errorInfo);
+    // No loguear el objeto completo: puede arrastrar configuración de requests.
+    console.error('ErrorBoundary:', error?.name || 'Error', error?.message || '');
+    if (errorInfo?.componentStack) {
+      console.error('ErrorBoundary componentStack:', errorInfo.componentStack);
+    }
   }
 
   handleReload = () => {

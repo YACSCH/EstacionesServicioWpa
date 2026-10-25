@@ -17,7 +17,8 @@ function Home() {
       const response = await GetEstaciones();
       setData(response.data);
     } catch (err) {
-      console.error(err);
+      // Solo mensaje/estado: el objeto de axios incluye cabeceras (Authorization).
+      console.error('No se pudieron cargar las estaciones:', err?.response?.status || err?.message || 'error desconocido');
       setError('Revisa tu conexión e inténtalo nuevamente.');
     } finally {
       setLoading(false);

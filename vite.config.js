@@ -1,13 +1,53 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { getEstaciones } from './api/_cne.js'
+
+// En desarrollo no hay funciones serverless: servimos /api/estaciones desde
+// el dev server para que las credenciales tampoco estén en el bundle local.
+const cneDevProxy = (env) => ({
+  name: 'cne-dev-proxy',
+  apply: 'serve',
+  configureServer(server) {
+    server.middlewares.use('/api/estaciones', async (req, res) => {
+      if (req.method !== 'GET') {
+        res.statusCode = 405
+        res.setHeader('Allow', 'GET')
+        res.end('Method Not Allowed')
+        return
+      }
+
+      try {
+        const { status, body, contentType } = await getEstaciones({
+          user: env.CNE_USER,
+          pass: env.CNE_PASS,
+          tokenUrl: env.CNE_TOKEN_URL,
+          estacionesUrl: env.CNE_ESTACIONES_URL,
+        })
+        res.statusCode = status
+        res.setHeader('Content-Type', contentType)
+        res.setHeader('Cache-Control', 'no-store')
+        res.end(body)
+      } catch (error) {
+        console.error('CNE dev proxy error:', error.message)
+        res.statusCode = 502
+        res.setHeader('Content-Type', 'application/json; charset=utf-8')
+        res.end(JSON.stringify({ error: 'No se pudo obtener la información de CNE.' }))
+      }
+    })
+  },
+})
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  base: process.env.BASE_PATH || '/',
-  plugins: [
-    react(),
-    VitePWA({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+
+  return {
+    base: process.env.BASE_PATH || '/',
+    plugins: [
+      react(),
+      cneDevProxy(env),
+      VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['img/*.png', 'vite.svg'],
       manifest: {
@@ -114,5 +154,6 @@ export default defineConfig({
         enabled: true
       }
     })
-  ],
+    ],
+  }
 })

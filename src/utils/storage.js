@@ -34,4 +34,32 @@ export const removeStorage = (key) => {
   }
 };
 
+// La ubicación es un dato personal: se descarta a las 24 h.
+const LOCATION_TTL_MS = 24 * 60 * 60 * 1000;
+
+export const getStoredLocation = () => {
+  const value = getStorage(STORAGE_KEYS.location, null);
+  if (!value || typeof value !== 'object') return null;
+
+  const lat = Number(value.lat);
+  const lon = Number(value.lon);
+  const savedAt = Number(value.savedAt);
+
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lon) ||
+    !Number.isFinite(savedAt) ||
+    Date.now() - savedAt > LOCATION_TTL_MS
+  ) {
+    removeStorage(STORAGE_KEYS.location);
+    return null;
+  }
+
+  return { lat, lon };
+};
+
+export const setStoredLocation = ({ lat, lon }) => {
+  setStorage(STORAGE_KEYS.location, { lat, lon, savedAt: Date.now() });
+};
+
 export { STORAGE_KEYS };
