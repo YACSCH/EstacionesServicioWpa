@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { GetEstaciones } from '../api/getData';
+import { apiErrorMessage } from '../utils/errors';
 
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -19,7 +20,7 @@ function Home() {
     } catch (err) {
       // Solo mensaje/estado: el objeto de axios incluye cabeceras (Authorization).
       console.error('No se pudieron cargar las estaciones:', err?.response?.status || err?.message || 'error desconocido');
-      setError('Revisa tu conexión e inténtalo nuevamente.');
+      setError(apiErrorMessage(err));
     } finally {
       setLoading(false);
     }

@@ -12,11 +12,37 @@ const priceValue = (precios, key) => {
   return value === undefined || value === null || value === '' ? null : value;
 };
 
+/**
+ * La CNE entrega precios como "1639.000" (punto decimal, 3 decimales).
+ * Si algún día llega formato es-CL ("1.299,5") o con separadores de miles
+ * ("1.299.000"), se normaliza para no multiplicar el valor por 10 o 1000.
+ */
+export function parsePrice(raw) {
+  if (typeof raw === 'number') {
+    return Number.isFinite(raw) && raw > 0 ? raw : null;
+  }
+  if (raw === null || raw === undefined) return null;
+
+  const text = String(raw).trim();
+  if (!text) return null;
+
+  let normalized = text;
+  if (text.includes(',')) {
+    // Coma decimal: "1.299,5" o "1299,5" → "1299.5".
+    normalized = text.replace(/\./g, '').replace(',', '.');
+  } else if ((text.match(/\./g) || []).length > 1) {
+    // Varios puntos: son separadores de miles ("1.299.000").
+    normalized = text.replace(/\./g, '');
+  }
+
+  const numeric = Number(normalized.replace(/[^\d.]/g, ''));
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+}
+
 export function getNumericPrice(station, key) {
   const raw = priceValue(station?.precios, key);
   if (raw === null) return null;
-  const numeric = Number(String(raw).replace(/[^\d.]/g, ''));
-  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+  return parsePrice(raw);
 }
 
 export function formatPrice(station, key) {
@@ -57,7 +83,7 @@ export function getUserLocation() {
         };
         reject(messages[error.code] || 'Error al obtener tu ubicación.');
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
     );
   });
 }

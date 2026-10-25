@@ -92,7 +92,8 @@ Actualizadas en esta revisión:
 
 - Logs saneados: ya no se imprime el objeto de error de axios (incluía la
   cabecera `Authorization`) en `Home` ni en `ErrorBoundary`.
-- `GetComuna` valida y escapa el identificador antes de concatenarlo a la URL.
+- Se eliminaron `GetRegion` / `GetComuna`: eran código muerto que llamaba a
+  `api.cne.cl` sin token (siempre habría devuelto 401).
 - `dev-dist/` dejó de trackearse y está en `.gitignore`.
 - La ubicación guardada en `localStorage` caduca a las 24 h (`getStoredLocation` /
   `setStoredLocation` en `src/utils/storage.js`); los datos antiguos sin marca de
@@ -101,8 +102,9 @@ Actualizadas en esta revisión:
   `workbox-window`; cuando una versión nueva toma el control, la página se
   recarga automáticamente (sin mezclar bundles viejos y nuevos). Además se busca
   actualización cada hora y al volver a la app.
-- `/api/*` está marcado como `NetworkOnly` en el service worker: las respuestas
-  del proxy nunca se cachean.
+- `/api/*` usa `NetworkFirst` con `networkTimeoutSeconds: 5` y caché de 24 h:
+  con red lenta o sin conexión se muestra la última lista descargada. Solo se
+  cachean respuestas `200` (nunca errores del proxy).
 - `/api/estaciones` rechaza query strings (evita claves de caché infinitas y
   llamadas innecesarias a CNE), fuerza `Content-Type: application/json`, valida
   que la respuesta sea JSON y redirige `/api/estaciones.js` y
@@ -115,8 +117,9 @@ Actualizadas en esta revisión:
   Google no recibe la IP del usuario; la CSP ya no necesita esos orígenes.
 - Un solo lockfile (`package-lock.json`); `yarn.lock` se eliminó para que nadie
   instale un árbol de dependencias distinto.
-- CI en `.github/workflows/ci.yml`: `npm ci`, lint, build, `npm audit --omit=dev`
-  y comprobación de que no se usen variables `VITE_` para credenciales.
+- CI en `.github/workflows/ci.yml`: `npm ci`, lint, tests (`node --test`), build,
+  `npm audit --omit=dev` y comprobación de que no se usen variables `VITE_` para
+  credenciales.
 
 ## 7. Recomendaciones pendientes
 

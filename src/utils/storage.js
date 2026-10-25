@@ -34,6 +34,24 @@ export const removeStorage = (key) => {
   }
 };
 
+// Variantes sin JSON: el script inline de index.html escribe el tema como
+// texto plano antes del primer pintado, así que debe leerse igual.
+export const getRawStorage = (key, fallback = null) => {
+  try {
+    return localStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+export const setRawStorage = (key, value) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // ignore
+  }
+};
+
 // La ubicación es un dato personal: se descarta a las 24 h.
 const LOCATION_TTL_MS = 24 * 60 * 60 * 1000;
 

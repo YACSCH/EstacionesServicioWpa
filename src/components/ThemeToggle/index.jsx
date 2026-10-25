@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMoon, faSun } from '@fortawesome/free-solid-svg-icons';
+import { getRawStorage, setRawStorage, STORAGE_KEYS } from '../../utils/storage';
 
 const getInitialTheme = () => {
-  const stored = localStorage.getItem('theme');
+  const stored = getRawStorage(STORAGE_KEYS.theme);
   if (stored === 'light' || stored === 'dark') return stored;
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  return prefersDark ? 'dark' : 'light';
 };
 
 const ThemeToggle = () => {
@@ -13,10 +15,7 @@ const ThemeToggle = () => {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem('theme', theme);
-    document
-      .querySelector('meta[name="theme-color"]')
-      ?.setAttribute('content', theme === 'dark' ? '#0b1220' : '#0f172a');
+    setRawStorage(STORAGE_KEYS.theme, theme);
   }, [theme]);
 
   return (

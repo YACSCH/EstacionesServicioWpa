@@ -60,7 +60,7 @@ export default defineConfig(({ mode }) => {
         // La registración la hace src/pwa.js con workbox-window, que recarga
         // la página cuando el service worker nuevo toma el control.
         injectRegister: null,
-        includeAssets: ['img/*.png', 'vite.svg'],
+        includeAssets: ['img/*.png'],
         manifest: {
           name: 'Estaciones de Servicio',
           short_name: 'Estaciones',
@@ -102,10 +102,21 @@ export default defineConfig(({ mode }) => {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff2}'],
           runtimeCaching: [
             {
-              // Los endpoints del proxy nunca se cachean: los datos cambian y
-              // no queremos respuestas obsoletas ni contenido autenticado.
+              // Red lenta: a los 5 s se sirve la última copia. Sin red, el
+              // listado sigue disponible (la respuesta es pública, sin auth).
               urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
-              handler: 'NetworkOnly'
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'estaciones-api-cache',
+                networkTimeoutSeconds: 5,
+                expiration: {
+                  maxEntries: 2,
+                  maxAgeSeconds: 60 * 60 * 24 // 24 h
+                },
+                cacheableResponse: {
+                  statuses: [200]
+                }
+              }
             },
             {
               urlPattern: ({ url }) => url.origin.includes('tile.openstreetmap.org'),
