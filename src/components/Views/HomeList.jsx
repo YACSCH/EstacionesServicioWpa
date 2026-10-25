@@ -20,7 +20,6 @@ import { getStorage, setStorage, getStoredLocation, setStoredLocation, STORAGE_K
 
 const RADIUS_OPTIONS = [2, 5, 10, 15];
 const PAGE_SIZE = 60;
-const SORT_VALUES = ['distance', ...FUEL_OPTIONS.map((fuel) => `price_${fuel.key}`)];
 
 const readRadius = () => {
   const stored = Number(getStorage(STORAGE_KEYS.home.radius, 5));
@@ -32,11 +31,6 @@ const readFuel = () => {
   return stored === 'all' || FUEL_OPTIONS.some((fuel) => fuel.key === stored) ? stored : 'all';
 };
 
-const readSort = () => {
-  const stored = getStorage(STORAGE_KEYS.home.sort, 'distance');
-  return SORT_VALUES.includes(stored) ? stored : 'distance';
-};
-
 const HomeList = ({ datos }) => {
   const [position, setPosition] = useState(null);
   const [stations, setStations] = useState([]);
@@ -44,7 +38,6 @@ const HomeList = ({ datos }) => {
   const [error, setError] = useState(null);
   const [radius, setRadius] = useState(readRadius);
   const [fuelFilter, setFuelFilter] = useState(readFuel);
-  const [sortBy, setSortBy] = useState(readSort);
   // Permite ver todo el país cuando no hay estaciones en el radio máximo.
   const [unlimited, setUnlimited] = useState(false);
   // Render incremental: evita montar cientos de tarjetas y marcadores de golpe.
@@ -57,7 +50,6 @@ const HomeList = ({ datos }) => {
 
   useEffect(() => setStorage(STORAGE_KEYS.home.radius, radius), [radius]);
   useEffect(() => setStorage(STORAGE_KEYS.home.fuel, fuelFilter), [fuelFilter]);
-  useEffect(() => setStorage(STORAGE_KEYS.home.sort, sortBy), [sortBy]);
 
   // Calcula distancias y ordena. Se reutiliza al refrescar la ubicación en
   // segundo plano para que position y _distance nunca queden desincronizados.
@@ -146,24 +138,14 @@ const HomeList = ({ datos }) => {
       result = result.filter((station) => hasFuel(station, fuelFilter));
     }
 
-    result = [...result];
-
-    if (sortBy === 'distance') {
-      result.sort((a, b) => (a._distance ?? Infinity) - (b._distance ?? Infinity));
-    } else {
-      const fuelKey = sortBy.replace('price_', '');
-      result.sort((a, b) => {
-        const priceA = getNumericPrice(a, fuelKey) ?? Infinity;
-        const priceB = getNumericPrice(b, fuelKey) ?? Infinity;
-        return priceA - priceB;
-      });
-    }
-
-    return result;
-  }, [stations, fuelFilter, sortBy, radius, hasLocation, unlimited]);
+    // Orden fijo: siempre por cercanía; sin distancia, al final.
+    return [...result].sort(
+      (a, b) => (a._distance ?? Infinity) - (b._distance ?? Infinity)
+    );
+  }, [stations, fuelFilter, radius, hasLocation, unlimited]);
 
   // Al cambiar cualquier filtro se vuelve a la primera página.
-  useEffect(() => setVisibleCount(PAGE_SIZE), [radius, fuelFilter, sortBy, unlimited]);
+  useEffect(() => setVisibleCount(PAGE_SIZE), [radius, fuelFilter, unlimited]);
 
   const visibleStations = useMemo(
     () => filteredStations.slice(0, visibleCount),
@@ -238,22 +220,31 @@ const HomeList = ({ datos }) => {
       </div>
 
       <div className="toolbar">
-        <div className="chip-group" role="group" aria-label="Radio de búsqueda">
-          <span className="toolbar__label">Radio</span>
-          {RADIUS_OPTIONS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              className={`chip${hasLocation && !unlimited && radius === option ? ' chip--active' : ''}`}
-              aria-pressed={hasLocation && !unlimited && radius === option}
-              onClick={() => {
-                setUnlimited(false);
-                setRadius(option);
-              }}
-            >
-              {option} km
-            </button>
-          ))}
+        {/* En móvil el wrapper se disuelve (display: contents) y el orden es
+            radio → combustible → Actualizar. En escritorio el grupo entero
+            (radio + Actualizar) va a la derecha, en la misma fila. */}
+        <div className="toolbar__right">
+          <div className="chip-group chip-group--radio" role="group" aria-label="Radio de búsqueda">
+            <span className="toolbar__label">Radio</span>
+            {RADIUS_OPTIONS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={`chip${hasLocation && !unlimited && radius === option ? ' chip--active' : ''}`}
+                aria-pressed={hasLocation && !unlimited && radius === option}
+                onClick={() => {
+                  setUnlimited(false);
+                  setRadius(option);
+                }}
+              >
+                {option} km
+              </button>
+            ))}
+          </div>
+          <button type="button" className="btn btn--primary btn--sm" onClick={() => locate(true)}>
+            <FontAwesomeIcon icon={faLocationCrosshairs} />
+            Actualizar
+          </button>
         </div>
 
         <div className="chip-group chip-group--scroll" role="group" aria-label="Filtrar por combustible">
@@ -277,24 +268,6 @@ const HomeList = ({ datos }) => {
               {fuel.name}
             </button>
           ))}
-        </div>
-
-        <div className="toolbar__right">
-          <label className="select-field">
-            <span>Ordenar por</span>
-            <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-              <option value="distance">Distancia</option>
-              {FUEL_OPTIONS.map((fuel) => (
-                <option key={fuel.key} value={`price_${fuel.key}`}>
-                  Precio {fuel.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button type="button" className="btn btn--primary btn--sm" onClick={() => locate(true)}>
-            <FontAwesomeIcon icon={faLocationCrosshairs} />
-            Actualizar
-          </button>
         </div>
       </div>
 
@@ -362,7 +335,11 @@ const HomeList = ({ datos }) => {
             <header className="section-heading">
               <div>
                 <h2>{hasLocation && !unlimited ? 'Estaciones cercanas' : 'Estaciones'}</h2>
-                <p>{filteredStations.length} resultados ordenados por {sortBy === 'distance' ? 'distancia' : 'precio'}</p>
+                <p>
+                  {filteredStations.length}{' '}
+                  {filteredStations.length === 1 ? 'estación' : 'estaciones'} ·{' '}
+                  {filteredStations.length === 1 ? 'ordenada' : 'ordenadas'} por distancia
+                </p>
               </div>
             </header>
             <div className="cards-grid">

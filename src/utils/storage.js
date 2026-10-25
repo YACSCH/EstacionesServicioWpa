@@ -2,7 +2,6 @@ const STORAGE_KEYS = {
   home: {
     radius: 'es.home.radius',
     fuel: 'es.home.fuel',
-    sort: 'es.home.sort',
   },
   location: 'es.user.location',
   theme: 'theme',

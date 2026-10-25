@@ -579,10 +579,20 @@ a {
 }
 
 .toolbar__right {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.6rem;
+  display: contents;
+}
+
+/* Orden móvil: radio, combustible y Actualizar (el wrapper no pinta caja). */
+.toolbar__right > .chip-group--radio {
+  order: 1;
+}
+
+.toolbar > .chip-group--scroll {
+  order: 2;
+}
+
+.toolbar__right > .btn {
+  order: 3;
 }
 
 .chip-group {
@@ -635,6 +645,21 @@ a {
     justify-content: space-between;
     flex-wrap: wrap;
   }
+
+  /* Combustible a la izquierda; radio + Actualizar al borde derecho. */
+  .toolbar > .chip-group--scroll {
+    order: 1;
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .toolbar__right {
+    display: flex;
+    order: 2;
+    margin-left: auto;
+    align-items: center;
+    gap: 0.6rem;
+  }
 }
 
 /* ============================================================
@@ -679,39 +704,6 @@ a {
 .search-field input::placeholder {
   color: var(--muted);
   opacity: 0.85;
-}
-
-.select-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-}
-
-.select-field span {
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.select-field select {
-  width: 100%;
-  padding: 0.55rem 0.75rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text);
-  font-size: 0.86rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.select-field select:focus {
-  border-color: var(--brand-2);
-  outline: none;
-  box-shadow: 0 0 0 3px var(--brand-soft);
 }
 
 @media (min-width: 720px) {
