@@ -103,6 +103,14 @@ verificar `vite-plugin-pwa`).
   actualización cada hora y al volver a la app.
 - `/api/*` está marcado como `NetworkOnly` en el service worker: las respuestas
   del proxy nunca se cachean.
+- `/api/estaciones` rechaza query strings (evita claves de caché infinitas y
+  llamadas innecesarias a CNE), fuerza `Content-Type: application/json`, valida
+  que la respuesta sea JSON y redirige `/api/estaciones.js` y
+  `/api/estaciones/` a la ruta canónica.
+- Cabecera `Cross-Origin-Resource-Policy: same-origin` y CSP sin `blob:` en
+  `worker-src`/`img-src`.
+- CI en `.github/workflows/ci.yml`: `npm ci`, lint, build, `npm audit --omit=dev`
+  y comprobación de que no se usen variables `VITE_` para credenciales.
 
 ## 7. Recomendaciones pendientes
 

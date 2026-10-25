@@ -1,5 +1,10 @@
 import { getEstaciones } from './_cne.js';
 
+function isJsonBody(body) {
+  const first = body.trimStart()[0];
+  return first === '[' || first === '{';
+}
+
 /**
  * Función serverless de Vercel: GET /api/estaciones
  *
@@ -14,17 +19,24 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  try {
-    const { status, body, contentType } = await getEstaciones();
+  // Sin query strings: evita claves de caché infinitas y llamadas innecesarias a CNE.
+  const requestUrl = new URL(req.url || '/', 'http://localhost');
+  if (requestUrl.search) {
+    return res.status(400).json({ error: 'Unexpected query parameters' });
+  }
 
-    res.status(status);
-    res.setHeader('Content-Type', contentType);
-    res.setHeader(
-      'Cache-Control',
-      status >= 200 && status < 300
-        ? 's-maxage=300, stale-while-revalidate=600'
-        : 'no-store'
-    );
+  try {
+    const { status, body } = await getEstaciones();
+
+    if (status < 200 || status >= 300 || !isJsonBody(body)) {
+      console.error('CNE proxy returned an unusable response:', status);
+      return res.status(502).json({ error: 'No se pudo obtener la información de CNE.' });
+    }
+
+    // Content-Type fijo: nunca se reenvía HTML/otro tipo desde el upstream.
+    res.status(200);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
 
     return res.send(body);
   } catch (error) {

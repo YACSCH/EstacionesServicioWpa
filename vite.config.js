@@ -17,15 +17,23 @@ const cneDevProxy = (env) => ({
         return
       }
 
+      const requestUrl = new URL(req.url || '/', 'http://localhost')
+      if (requestUrl.search) {
+        res.statusCode = 400
+        res.setHeader('Content-Type', 'application/json; charset=utf-8')
+        res.end(JSON.stringify({ error: 'Unexpected query parameters' }))
+        return
+      }
+
       try {
-        const { status, body, contentType } = await getEstaciones({
+        const { status, body } = await getEstaciones({
           user: env.CNE_USER,
           pass: env.CNE_PASS,
           tokenUrl: env.CNE_TOKEN_URL,
           estacionesUrl: env.CNE_ESTACIONES_URL,
         })
         res.statusCode = status
-        res.setHeader('Content-Type', contentType)
+        res.setHeader('Content-Type', 'application/json; charset=utf-8')
         res.setHeader('Cache-Control', 'no-store')
         res.end(body)
       } catch (error) {

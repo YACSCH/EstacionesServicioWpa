@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Vulnerabilidades de runtime
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Sin credenciales en el cliente
+        run: |
+          if grep -rnE 'VITE_(PASS|USUARIO|USER)\b' src; then
+            echo "::error::No uses variables VITE_ para credenciales: se publican en el bundle."
+            exit 1
+          fi
