@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faLocationCrosshairs,
@@ -31,17 +31,25 @@ const readFuel = () => {
   return stored === 'all' || FUEL_OPTIONS.some((fuel) => fuel.key === stored) ? stored : 'all';
 };
 
-const HomeList = ({ datos }) => {
+const HomeList = ({ datos, onRefresh }) => {
   const [position, setPosition] = useState(null);
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [error, setError] = useState(null);
+  const [refreshError, setRefreshError] = useState(null);
   const [radius, setRadius] = useState(readRadius);
   const [fuelFilter, setFuelFilter] = useState(readFuel);
   // Permite ver todo el país cuando no hay estaciones en el radio máximo.
   const [unlimited, setUnlimited] = useState(false);
   // Render incremental: evita montar cientos de tarjetas y marcadores de golpe.
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  // Solo el primer montaje muestra el esqueleto; al recargar datos no.
+  const hasLoadedRef = useRef(false);
+  // Última posición en memoria: evita perderla si localStorage falla o al
+  // recargar datos sin volver a pedir el GPS.
+  const positionRef = useRef(null);
 
   const availableStations = useMemo(
     () => (datos ? Object.values(datos) : []),
@@ -70,54 +78,106 @@ const HomeList = ({ datos }) => {
       .sort((a, b) => a._distance - b._distance);
   }, []);
 
-  const locate = useCallback(
-    async (force = false) => {
-      setLoading(true);
-      setError(null);
-      if (force) setUnlimited(false);
-      const cached = getStoredLocation();
-
-      try {
-        const userPos = force || !cached ? await getUserLocation() : cached;
-        setStoredLocation(userPos);
-        setPosition([userPos.lat, userPos.lon]);
-        setStations(withDistances(availableStations, userPos));
-
-        if (cached && !force) {
-          // Refresco silencioso: al llegar la ubicación nueva se recalculan
-          // también las distancias, no solo el marcador del mapa.
-          getUserLocation()
-            .then((fresh) => {
-              setStoredLocation(fresh);
-              setPosition([fresh.lat, fresh.lon]);
-              setStations(withDistances(availableStations, fresh));
-            })
-            .catch(() => {});
-        }
-      } catch (err) {
-        if (cached) {
-          setPosition([cached.lat, cached.lon]);
-          setStations(withDistances(availableStations, cached));
-          setError(
-            `${typeof err === 'string' ? err : 'No pudimos actualizar tu ubicación.'} Mostrando tu última ubicación conocida.`
-          );
-        } else {
-          // Sin permiso ni caché: la app sigue siendo utilizable mostrando
-          // todas las estaciones, sin distancias ni filtro por radio.
-          setPosition(null);
-          setStations(availableStations.map((station) => ({ ...station, _distance: null })));
-          setError(typeof err === 'string' ? err : 'No pudimos obtener tu ubicación.');
-        }
-      } finally {
-        setLoading(false);
-      }
+  const applyPosition = useCallback(
+    (userPos) => {
+      positionRef.current = userPos;
+      setPosition([userPos.lat, userPos.lon]);
+      setStations(withDistances(availableStations, userPos));
     },
     [availableStations, withDistances]
   );
 
+  const showStationsWithoutLocation = useCallback(() => {
+    positionRef.current = null;
+    setPosition(null);
+    setStations(availableStations.map((station) => ({ ...station, _distance: null })));
+  }, [availableStations]);
+
+  // Recalcula la lista con la ubicación guardada o solicita ubicación al ingresar.
+  const locate = useCallback(
+    async ({ silent = false, autoRequest = false } = {}) => {
+      if (!silent) setLoading(true);
+      if (!silent) setError(null);
+      const cached = positionRef.current || getStoredLocation();
+      if (cached) {
+        applyPosition(cached);
+        hasLoadedRef.current = true;
+        if (!silent) setLoading(false);
+        return;
+      }
+      if (autoRequest && !hasLoadedRef.current) {
+        try {
+          const userPos = await getUserLocation();
+          setStoredLocation(userPos);
+          setUnlimited(false);
+          applyPosition(userPos);
+        } catch (err) {
+          const message = typeof err === 'string' ? err : 'No pudimos obtener tu ubicación.';
+          showStationsWithoutLocation();
+          setError(message);
+        } finally {
+          hasLoadedRef.current = true;
+          if (!silent) setLoading(false);
+        }
+        return;
+      }
+      showStationsWithoutLocation();
+      hasLoadedRef.current = true;
+      if (!silent) setLoading(false);
+    },
+    [applyPosition, showStationsWithoutLocation]
+  );
+
+  // Solicitud explícita de GPS: solo se ejecuta con un gesto del usuario.
+  const requestLocation = useCallback(async () => {
+    setError(null);
+    setLocating(true);
+    try {
+      const userPos = await getUserLocation();
+      setStoredLocation(userPos);
+      setUnlimited(false);
+      applyPosition(userPos);
+    } catch (err) {
+      const message = typeof err === 'string' ? err : 'No pudimos obtener tu ubicación.';
+      const cached = getStoredLocation();
+      if (cached) {
+        applyPosition(cached);
+        setError(`${message} Mostrando tu última ubicación conocida.`);
+      } else {
+        // Sin permiso ni caché: la app sigue siendo utilizable mostrando
+        // todas las estaciones, sin distancias ni filtro por radio.
+        showStationsWithoutLocation();
+        setError(message);
+      }
+    } finally {
+      setLocating(false);
+    }
+  }, [applyPosition, showStationsWithoutLocation]);
+
+  // "Actualizar" recarga los datos de estaciones (o recalcula con la
+  // ubicación guardada). No abre el diálogo de permiso de ubicación.
+  const refresh = useCallback(async () => {
+    setRefreshError(null);
+    setRefreshing(true);
+    try {
+      if (onRefresh) {
+        const ok = await onRefresh();
+        if (ok === false) {
+          setRefreshError(
+            'No pudimos actualizar las estaciones. Revisa tu conexión e inténtalo de nuevo.'
+          );
+        }
+      } else {
+        locate({ silent: true });
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  }, [onRefresh, locate]);
+
   useEffect(() => {
     if (availableStations.length) {
-      locate();
+      locate({ silent: hasLoadedRef.current, autoRequest: !hasLoadedRef.current });
     } else {
       setLoading(false);
     }
@@ -185,7 +245,7 @@ const HomeList = ({ datos }) => {
     if (hasLocation && !unlimited) {
       return { label: 'Buscar en todo el país', onClick: () => setUnlimited(true) };
     }
-    return { label: 'Actualizar ubicación', onClick: () => locate(true) };
+    return { label: 'Usar mi ubicación', onClick: requestLocation };
   })();
 
   return (
@@ -220,8 +280,8 @@ const HomeList = ({ datos }) => {
       </div>
 
       <div className="toolbar">
-        {/* Orden: radio, combustible y Actualizar. En escritorio el botón
-            se alinea al borde derecho. */}
+        {/* Orden: radio, combustible y acciones. En escritorio las acciones
+            se alinean al borde derecho. */}
         <div className="chip-group chip-group--radio" role="group" aria-label="Radio de búsqueda">
           <span className="toolbar__label">Radio</span>
           {RADIUS_OPTIONS.map((option) => (
@@ -263,11 +323,54 @@ const HomeList = ({ datos }) => {
           ))}
         </div>
 
-        <button type="button" className="btn btn--primary btn--sm" onClick={() => locate(true)}>
-          <FontAwesomeIcon icon={faLocationCrosshairs} />
-          Actualizar
-        </button>
+        <div className="toolbar__actions">
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={refresh}
+            disabled={refreshing}
+          >
+            <FontAwesomeIcon icon={faRotate} spin={refreshing} />
+            {refreshing ? 'Actualizando…' : 'Actualizar'}
+          </button>
+        </div>
       </div>
+
+      {!hasLocation && !error && !loading && (
+        <div className="alert alert--info">
+          <FontAwesomeIcon icon={faLocationCrosshairs} />
+          <div>
+            <strong>Activa tu ubicación para ver las estaciones más cercanas</strong>
+            <p>Mientras tanto mostramos todas las estaciones de Chile, sin distancias.</p>
+          </div>
+          <button
+            type="button"
+            className="btn btn--primary btn--sm"
+            onClick={requestLocation}
+            disabled={locating}
+          >
+            <FontAwesomeIcon icon={faLocationCrosshairs} /> Usar mi ubicación
+          </button>
+        </div>
+      )}
+
+      {refreshError && (
+        <div className="alert alert--error">
+          <FontAwesomeIcon icon={faTriangleExclamation} />
+          <div>
+            <strong>No pudimos actualizar las estaciones</strong>
+            <p>{refreshError}</p>
+          </div>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={refresh}
+            disabled={refreshing}
+          >
+            <FontAwesomeIcon icon={faRotate} /> Reintentar
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="alert alert--error">
@@ -281,7 +384,12 @@ const HomeList = ({ datos }) => {
                 : 'Mientras tanto mostramos todas las estaciones del país.'}
             </p>
           </div>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => locate(true)}>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={requestLocation}
+            disabled={locating}
+          >
             <FontAwesomeIcon icon={faRotate} /> Reintentar
           </button>
         </div>

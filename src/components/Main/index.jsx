@@ -13,7 +13,7 @@ const SkeletonGrid = () => (
   </div>
 );
 
-const Main = ({ data, loading, error, onRetry }) => {
+const Main = ({ data, loading, error, onRetry, onRefresh }) => {
   return (
     <main className="main">
       {loading ? (
@@ -30,7 +30,7 @@ const Main = ({ data, loading, error, onRetry }) => {
           )}
         </div>
       ) : (
-        <HomeList datos={data} />
+        <HomeList datos={data} onRefresh={onRefresh} />
       )}
     </main>
   );

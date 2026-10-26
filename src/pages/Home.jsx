@@ -26,6 +26,17 @@ function Home() {
     }
   }, []);
 
+  const refreshData = useCallback(async () => {
+    try {
+      const response = await GetEstaciones();
+      setData(response.data);
+      return true;
+    } catch (err) {
+      console.error('No se pudieron actualizar las estaciones:', err?.response?.status || err?.message || 'error desconocido');
+      return false;
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -33,7 +44,14 @@ function Home() {
   return (
     <>
       <Header />
-      <Main data={data} type="home" loading={loading} error={error} onRetry={loadData} />
+      <Main
+        data={data}
+        type="home"
+        loading={loading}
+        error={error}
+        onRetry={loadData}
+        onRefresh={refreshData}
+      />
       <Footer />
     </>
   );

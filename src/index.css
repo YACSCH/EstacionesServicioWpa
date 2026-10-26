@@ -578,6 +578,13 @@ a {
   margin-right: 0.15rem;
 }
 
+.toolbar__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .chip-group {
   display: flex;
   align-items: center;
@@ -629,7 +636,7 @@ a {
     flex-wrap: wrap;
   }
 
-  /* Radio y combustible juntos a la izquierda; Actualizar al borde derecho. */
+  /* Radio y combustible juntos a la izquierda; acciones al borde derecho. */
   .toolbar > .chip-group--radio {
     margin-right: 2rem;
   }
@@ -639,7 +646,7 @@ a {
     min-width: 0;
   }
 
-  .toolbar > .btn {
+  .toolbar > .toolbar__actions {
     margin-left: auto;
   }
 }
@@ -713,9 +720,14 @@ a {
   overflow: hidden;
 }
 
+.panel--map {
+  min-height: 320px;
+}
+
 .panel--map .map {
   min-height: 320px;
   height: 44vh;
+  width: 100%;
 }
 
 .panel--map-wide .map {
@@ -1069,6 +1081,17 @@ a {
 
 .alert--error > svg {
   color: var(--danger);
+  font-size: 1.2rem;
+}
+
+.alert--info {
+  border-color: rgba(15, 118, 110, 0.35);
+  background: rgba(15, 118, 110, 0.06);
+  color: var(--text);
+}
+
+.alert--info > svg {
+  color: var(--brand);
   font-size: 1.2rem;
 }
 

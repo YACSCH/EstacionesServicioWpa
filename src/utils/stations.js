@@ -77,7 +77,7 @@ export function getUserLocation() {
       (position) => resolve({ lat: position.coords.latitude, lon: position.coords.longitude }),
       (error) => {
         const messages = {
-          1: 'Permiso de ubicación denegado. Habilítalo para ver estaciones cercanas.',
+          1: 'Permiso de ubicación denegado. Actívalo en los ajustes del sitio (icono del candado) para ver estaciones cercanas.',
           2: 'No se pudo determinar tu ubicación.',
           3: 'La ubicación tardó demasiado en responder.',
         };

@@ -42,6 +42,26 @@ const FitToStations = ({ points }) => {
     }
   }, [map, points]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      map.invalidateSize();
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [map]);
+
+  return null;
+};
+
+const InvalidateSizeOnMount = () => {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [map]);
   return null;
 };
 
@@ -79,6 +99,7 @@ const Mapa = ({ data = [], center, userPosition, zoom = 13, className = '', show
       />
 
       {fitPoints.length > 0 && <FitToStations points={fitPoints} />}
+      <InvalidateSizeOnMount />
 
       {userPosition && (
         <Marker position={userPosition} icon={userIcon} zIndexOffset={1000}>
