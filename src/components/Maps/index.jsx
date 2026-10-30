@@ -94,8 +94,9 @@ const Mapa = ({ data = [], center, userPosition, zoom = 13, className = '', show
       className={`map ${className}`}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        maxZoom={19}
       />
 
       {fitPoints.length > 0 && <FitToStations points={fitPoints} />}

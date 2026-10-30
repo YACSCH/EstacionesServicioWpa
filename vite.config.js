@@ -120,15 +120,15 @@ export default defineConfig(({ mode }) => {
             },
             {
               urlPattern: ({ url }) => url.origin.includes('tile.openstreetmap.org'),
-              handler: 'CacheFirst',
+              handler: 'StaleWhileRevalidate',
               options: {
-                cacheName: 'osm-tiles-cache',
+                cacheName: 'osm-tiles-v2',
                 expiration: {
                   maxEntries: 500,
-                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                  maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
                 },
                 cacheableResponse: {
-                  statuses: [0, 200]
+                  statuses: [200]
                 }
               }
             }
