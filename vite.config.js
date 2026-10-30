@@ -119,15 +119,13 @@ export default defineConfig(({ mode }) => {
               }
             },
             {
-              urlPattern: ({ url }) =>
-                url.origin.includes('tile.openstreetmap.org') ||
-                url.origin.includes('basemaps.cartocdn.com'),
-              handler: 'StaleWhileRevalidate',
+              urlPattern: ({ url }) => url.origin.includes('tile.openstreetmap.org'),
+              handler: 'CacheFirst',
               options: {
-                cacheName: 'map-tiles-cache-v2',
+                cacheName: 'osm-tiles-cache',
                 expiration: {
-                  maxEntries: 600,
-                  maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
+                  maxEntries: 500,
+                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
                 },
                 cacheableResponse: {
                   statuses: [0, 200]
